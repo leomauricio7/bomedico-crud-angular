@@ -1,97 +1,54 @@
-//importando as bibliotecas
-const express = require('express');
-const http = require('http');
+const express = require('express')
+const app = express()
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const port = 3000
+const cors = require('cors')
 
-//passando para a constante app a função do express
-const app = express();
 
-//conectando ao banco de dados
-mongoose.connect('mongodb://127.0.0.1:27017/teste',{ useNewUrlParser: true });
-const statusDB = mongoose.connection;
-statusDB.on('error', console.error.bind(console, 'connection error:'));
-statusDB.once('open', function() {
-  console.log('Conectado ao mongoDB com sucesso!');
-});
-
+app.use(cors())
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }))
- 
-// parser application/json
-app.use(bodyParser.json())
 
-//setando a porta do servidor
-app.listen(3000, function() {
-    console.log('Servidor rodando na porta 3000.');
+// parse application/json
+app.use(bodyParser.json());
+
+let users = [];
+
+app.post('/users', (req, res) => {
+    users.push(req.body);
+    res.json(true);
+});
+
+app.get('/users', (req, res) => {
+  res.json(users);
+});
+
+app.get('/users/:id', (req, res) => {
+  const data = users.filter( (element) => {
+    return element.email == req.params.id;
   });
+  res.json(data);
+});
 
-//importando o shema com o mongoose
-const Schema = mongoose.Schema;
-//criando o modelo da colleciton contato
-const contato = new Schema({
-    nome: String,
-    telefone: Number
+app.put('/users/:id', (req, res) => {
+  const data = users.map( (element) => {
+    if(element.email == req.params.id){
+      return req.body;
+    }else{
+      return element;
+    }
   });
-const modelContato = mongoose.model('contato', contato);  
-
-//rota de retorna todos os contatos cadastrados
-app.get('/contatos', (req, res) => {
-    modelContato
-    .find()
-    .then(data => {
-        res.status(200).send(data);
-    }).catch(e => {
-        res.status(400).send(e);
-    });
+  users = data;
+  res.send('Usuario alterado com sucesso!');
 });
 
-//rota de filtrar contatos
-app.get('/contatos/:id', (req, res) => {
-    modelContato
-    .findById(req.params.id)
-    .then(data => {
-        res.status(200).send(data);
-    }).catch(e => {
-        res.status(400).send(e);
-    });
+app.delete('/users/:id', (req, res) => {
+  const data = users.filter( (element) => {
+    return element.email != req.params.id;
+  });
+  users = data;
+  res.send('Usuário deletado com sucesso');
 });
 
-//rota de cadastrar contato
-app.post('/contatos', (req, res) => {
-    var data = new modelContato(req.body);
-    data.save().then(x => {
-        res.status(201).send({ message: 'Produto cadastrado com sucesso!' });
-    }).catch(e => {
-        res.status(400).send({ message: 'Falha no cadastro do produto!', data: e });
-    });
-});
-
-//rota de editar contato
-app.put('/contatos/:id', (req, res) => {
-    modelContato
-    .findOneAndUpdate(req.params.id, {
-        $set: {
-            nome: req.body.nome,
-            telefone: req.body.telefone
-        }
-    })
-    .then(x => {
-        res.status(200).send({ message: 'Contato alterado com sucesso!' });
-    }).
-    catch(e => {
-        res.status(400).send({ message: 'Falha na alteração do contato!'});
-    });
-});
-
-//rota de remover contato
-app.delete('/contatos/:id', (req, res) => {
-    modelContato
-    .findOneAndRemove(req.params.id)
-    .then(x => {
-        res.status(200).send({ message: 'Contato excluido com sucesso!' });
-    }).
-    catch(e => {
-        res.status(400).send({ message: 'Falha na exclusão do contato!'});
-    });
-});
+app.listen(port, () => console.log(`Example app listening on port ${port}!`))
