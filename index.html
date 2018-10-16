@@ -1,0 +1,173 @@
+<html>
+<head>
+	<title>Lista Telefonica</title>
+	<style>
+		.jumbotron {
+			width: 400px;
+			text-align: center;
+			margin-top: 20px;
+			margin-left: auto;
+			margin-right: auto;
+      background-color: rgba(0,0,0,0.1);
+      padding: 10px;
+		}
+		.table {
+			margin-top: 20px;
+		}
+    input{
+      border-radius: 3px;
+    }
+		.form-control {
+			margin-bottom: 5px;
+		}
+    .selecionado{
+      background-color: rgb(3, 211, 3);
+    }
+    .negrito{
+      font-weight: bold;
+    }
+    h4{
+      color: #FFF;
+      background-color: red;
+    }
+
+	</style>
+	<script src="js/angular.js"></script>
+	<script>
+    var app = angular.module("app", []);
+    
+		app.controller("Users", function ($scope, $http) {
+			$scope.app = "Lista de Usuários";
+      $scope.users = [];
+      $scope.nome = '';
+      $scope.email = '';
+
+      var url = 'http://localhost:3000';
+
+      function sucess (res) {
+        $scope.users = res.data;
+      } 
+
+      function error (err) {
+        console.log(err)
+        alert('erro')
+      }
+      
+      function limpaTela(){
+        $scope.nome = '';
+        $scope.email = '';
+        atualizaLista();
+      }
+
+      function atualizaLista(){
+        $http.get(url+'/users').then(sucess, error);
+      }
+      
+      $scope.verificaStatus = function(){
+        var result = $scope.users.filter(function(elm){
+          return elm.selecionado == true
+        })
+        return result.length == 1
+      }
+
+      function limparSelecionado(){
+        $scope.users = $scope.users.map(function(elm) {
+          elm.selecionado = false
+          return elm
+        })
+      }
+      
+      function validation(){
+
+        if($scope.nome == ''){
+          $scope.message = 'Preencha o campo nome!';
+            return false;
+        }
+
+        if($scope.email == ''){
+          $scope.message = 'Preencha o campo email!';
+            return false;
+        }
+        return true;
+      }
+      atualizaLista();
+
+      $scope.save = function(){
+        if(validation()){
+          $http.post(url+'/users', {
+            nome: $scope.nome,
+            email: $scope.email
+          }).then(function(){
+            $scope.message = 'Adicionado com sucesso';
+            limpaTela();
+          }, function(){
+            $scope.message = 'Erro';
+          });
+        }
+      };
+
+      //verifica o dado selecionado
+      $scope.dadoSelecionado = function(data){
+        limparSelecionado()
+        $scope.nome = data.nome,
+        $scope.email = data.email
+        data.selecionado = true
+      };
+
+      $scope.edit = function(){
+        $http.put(url+'/users/'+$scope.email, {
+          nome: $scope.nome,
+          email: $scope.email
+        }).then(function(){
+          $scope.message = 'Usuário atualizado com sucesso';
+          limpaTela();
+          limparSelecionado();
+        }, function(){
+          $scope.message = 'Error';
+        });
+      }
+      
+      //metodo de deletar o usuário
+      $scope.delete = function(data){
+        $http.delete(url+'/users/'+data.email).then(
+          function(){
+            $scope.message = 'Excluido com sucesso';
+            atualizaLista();
+            limparSelecionado();
+            limpaTela();
+          },
+          function(){
+            $scope.message = 'Error';
+          }
+        );
+      };
+
+		});
+	</script>
+</head>
+<body ng-app="app">
+	<div class="jumbotron" ng-controller="Users">
+    <input type="text" ng-model="searchUser" placeholder="Pesquisar..">
+		<table class="table table-striped">
+			<tr>
+				<th>Nome</th>
+				<th>Email</th>
+			</tr>
+			<tr ng-class="{'selecionado negrito' : data.selecionado }" ng-repeat="data in users | filter: searchUser">
+        <td><input type="checkbox" ng-model="data.selecionado" ng-click= "dadoSelecionado(data)"></td>
+				<td>{{data.nome}}</td>
+        <td>{{data.email}}</td>
+        <td><button ng-click="delete(data)">Excluir</button></td>
+			</tr>
+		</table>
+    <hr/>
+    <form>
+      <input type="text" ng-model="nome" placeholder="Nome"/>
+      <input type="text" ng-model="email" placeholder="Email"/>
+      <button ng-click="save()" ng-hide="verificaStatus()">Adicionar</button>
+      <button ng-click="edit()" ng-show="verificaStatus()">Atualizar</button>
+      {{ message }}
+    </form>
+</div>
+</body>
+</html>
